@@ -2,7 +2,6 @@ package studio.rcs.com.testfft1;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -14,10 +13,9 @@ import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.widget.AppCompatImageView;
+import android.support.annotation.NonNull;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -57,6 +55,8 @@ public class MainActivity extends Activity implements OnClickListener {
 
     RecordAudio recordTask;  /*Função como AsynTask */
 
+    ImageView imageView2;
+
     ImageView imageView; /*We'll be using an ImageView to display a Bitmap image. This image will represent the
      levels of the various frequencies that are in the current audio stream. To draw these levels, we'll use Canvas and Paint
      objects constructed from the Bitmap. */
@@ -65,21 +65,21 @@ public class MainActivity extends Activity implements OnClickListener {
 
     Canvas canvas;
 
+    Canvas canvas2;
+
     Paint paint;
+
+    Bitmap bitmapScale;
 
 
     //
     //
     //Provavelmente é para manipular o bitmap
-    MyImageView imageViewScale; /*Funçao como ImageView */
-    int mPeakPos;
-    double mHighestFreq;
+    //MyImageView imageViewScale; /*Funçao como ImageView */
+    int lado;
+    int altura;
     int width;
     int height;
-    int left_Of_BimapScale;
-    int left_Of_DisplaySpectrum;
-    private final static int ID_BITMAPDISPLAYSPECTRUM = 1;
-    private final static int ID_IMAGEVIEWSCALE = 2;
     //
     //
     //
@@ -103,12 +103,53 @@ public class MainActivity extends Activity implements OnClickListener {
 
         transformer = new RealDoubleFFT(blockSize); /*transformer é funçao nativa da biblioteca importada fftPack*/
 
+        imageView2 = findViewById(R.id.ImageView2);
+
         imageView = findViewById(R.id.ImageView);
-        bitmap = Bitmap.createBitmap(256,100,Bitmap.Config.ARGB_8888);
-        canvas = new Canvas(bitmap);
+
+        //bitmap = Bitmap.createBitmap(256,300,Bitmap.Config.ARGB_8888);
+        //canvas = new Canvas(bitmap);
         paint = new Paint();
         paint.setColor(Color.GREEN);
+        //imageView.setImageBitmap(bitmap);
+    }
+
+    public void onWindowFocusChanged(boolean hasFocus){
+        super.onWindowFocusChanged(hasFocus);
+        lado = imageView.getWidth();
+        altura = imageView.getHeight();
+
+        int lado2 = imageView2.getWidth();
+        int altura2 = imageView2.getHeight();
+
+        Log.e("Valor de lado e altura", Integer.toString(lado) + "+" + Integer.toString(altura));
+        bitmap = Bitmap.createBitmap(lado,altura,Bitmap.Config.ARGB_8888);
+        canvas = new Canvas(bitmap);
         imageView.setImageBitmap(bitmap);
+
+        //fazer a escala
+        Paint paintScaleDisplay;
+        paintScaleDisplay = new Paint();
+        paintScaleDisplay.setColor(Color.WHITE);
+        paintScaleDisplay.setStyle(Paint.Style.FILL);
+
+        bitmapScale = Bitmap.createBitmap(lado2,altura2,Bitmap.Config.ARGB_8888);
+        canvas2 = new Canvas(bitmapScale);
+        canvas2.drawColor(Color.BLACK);
+
+        canvas2.drawLine(0, altura2,  lado2, altura2/2, paintScaleDisplay);
+        for(int i = 0,j = 0; i< lado2; i=i+(lado2/4), j++){
+            for (int k = i; k<(i+(lado2/4)); k=k+(lado2/32)){
+                canvas2.drawLine(k, altura2/2, k, (altura2/2-5), paintScaleDisplay);
+            }
+            canvas2.drawLine(i, (altura2/2+10), i, (altura2/2-5), paintScaleDisplay);
+            String text = Integer.toString(j) + " KHz";
+            canvas2.drawText(text, i, (altura2/2+10), paintScaleDisplay);
+        }
+        canvas2.drawBitmap(bitmapScale, 0, 0, paintScaleDisplay);
+
+        //imageView2.setImageBitmap(bitmapScale);
+
     }
 
     @SuppressLint("StaticFieldLeak")
@@ -143,11 +184,14 @@ public class MainActivity extends Activity implements OnClickListener {
 
         protected void onProgressUpdate (double[]... toTransform) {
             canvas.drawColor(Color.BLACK);
+            imageView2.setImageBitmap(bitmapScale);
+
+            Log.e("Tamanho do tranform:",Integer.toString(toTransform[0].length));
 
             for (int i=0; i<toTransform[0].length;i++){
-                int x=i;
-                int downy = (int) (100 - (toTransform[0][i]*10));
-                int upy = 100;
+                int x=lado*i/256;
+                int downy = (int) ((altura/2) - (toTransform[0][i]*10));
+                int upy = altura/2;
 
                 canvas.drawLine(x,downy,x,upy,paint);
             }
@@ -170,102 +214,21 @@ public class MainActivity extends Activity implements OnClickListener {
         }
     }
 
+
+
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+                                           @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
             case 2: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(MainActivity.this, "Permission Granted, Now you can access app without bug.",Toast.LENGTH_LONG).show();
-                }
-                else{
-                    Toast.makeText(this,"Permission Denied, App maybe get crashed.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "Permission Granted, Now you can access app without bug.", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(this, "Permission Denied, App maybe get crashed.", Toast.LENGTH_LONG).show();
                 }
                 break;
             }
 
-        }
-    }
-
-    //Custom Imageview Class
-    public class MyImageView extends AppCompatImageView {
-        Paint paintScaleDisplay;
-        Bitmap bitmapScale;
-        //Canvas canvasScale;
-        public MyImageView(Context context) {
-            super(context);
-            //TODO Auto-generated constructor stub
-            if(width >512){
-                bitmapScale = Bitmap.createBitmap(512,50,Bitmap.Config.ARGB_8888);
-            }
-            else{
-                bitmapScale =  Bitmap.createBitmap(256,50,Bitmap.Config.ARGB_8888);
-            }
-
-            paintScaleDisplay = new Paint();
-            paintScaleDisplay.setColor(Color.WHITE);
-            paintScaleDisplay.setStyle(Paint.Style.FILL);
-
-            //canvasScale = new Canvas(bitmapScale);
-
-            setImageBitmap(bitmapScale);
-            invalidate();
-        }
-        @Override
-        protected void onDraw(Canvas canvas)
-        {
-            // TODO Auto-generated method stub
-            super.onDraw(canvas);
-
-            if(width > 512){
-                //canvasScale.drawLine(0, 30,  512, 30, paintScaleDisplay);
-                canvas.drawLine(0, 30,  512, 30, paintScaleDisplay);
-                for(int i = 0,j = 0; i< 512; i=i+128, j++){
-                    for (int k = i; k<(i+128); k=k+16){
-                        //canvasScale.drawLine(k, 30, k, 25, paintScaleDisplay);
-                        canvas.drawLine(k, 30, k, 25, paintScaleDisplay);
-                    }
-                    //canvasScale.drawLine(i, 40, i, 25, paintScaleDisplay);
-                    canvas.drawLine(i, 40, i, 25, paintScaleDisplay);
-                    String text = Integer.toString(j) + " KHz";
-                    //canvasScale.drawText(text, i, 45, paintScaleDisplay);
-                    canvas.drawText(text, i, 45, paintScaleDisplay);
-                }
-                canvas.drawBitmap(bitmapScale, 0, 0, paintScaleDisplay);
-            }
-            else if ((width >320) && (width<512)){
-                //canvasScale.drawLine(0, 30, 0 + 256, 30, paintScaleDisplay);
-                canvas.drawLine(0, 30, 256, 30, paintScaleDisplay);
-                for(int i = 0,j = 0; i<256; i=i+64, j++){
-                    for (int k = i; k<(i+64); k=k+8){
-                        //canvasScale.drawLine(k, 30, k, 25, paintScaleDisplay);
-                        canvas.drawLine(k, 30, k, 25, paintScaleDisplay);
-                    }
-                    //canvasScale.drawLine(i, 40, i, 25, paintScaleDisplay);
-                    canvas.drawLine(i, 40, i, 25, paintScaleDisplay);
-                    String text = Integer.toString(j) + " KHz";
-                    //canvasScale.drawText(text, i, 45, paintScaleDisplay);
-                    canvas.drawText(text, i, 45, paintScaleDisplay);
-                }
-                canvas.drawBitmap(bitmapScale, 0, 0, paintScaleDisplay);
-            }
-
-            else if (width <320){
-                //canvasScale.drawLine(0, 30,  256, 30, paintScaleDisplay);
-                canvas.drawLine(0, 30,  256, 30, paintScaleDisplay);
-                for(int i = 0,j = 0; i<256; i=i+64, j++){
-                    for (int k = i; k<(i+64); k=k+8){
-                        //canvasScale.drawLine(k, 30, k, 25, paintScaleDisplay);
-                        canvas.drawLine(k, 30, k, 25, paintScaleDisplay);
-                    }
-                    //canvasScale.drawLine(i, 40, i, 25, paintScaleDisplay);
-                    canvas.drawLine(i, 40, i, 25, paintScaleDisplay);
-                    String text = Integer.toString(j) + " KHz";
-                    //canvasScale.drawText(text, i, 45, paintScaleDisplay);
-                    canvas.drawText(text, i, 45, paintScaleDisplay);
-                }
-                canvas.drawBitmap(bitmapScale, 0, 0, paintScaleDisplay);
-            }
         }
     }
 }
