@@ -137,7 +137,7 @@ public class MainActivity extends Activity implements OnClickListener {
         canvas2 = new Canvas(bitmapScale);
         canvas2.drawColor(Color.BLACK);
 
-        canvas2.drawLine(0, altura2,  lado2, altura2/2, paintScaleDisplay);
+        canvas2.drawLine(0, altura2/2,  lado2, altura2/2, paintScaleDisplay);
         for(int i = 0,j = 0; i< lado2; i=i+(lado2/4), j++){
             for (int k = i; k<(i+(lado2/4)); k=k+(lado2/32)){
                 canvas2.drawLine(k, altura2/2, k, (altura2/2-5), paintScaleDisplay);
