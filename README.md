@@ -1,5 +1,5 @@
 # FFTwithMic
-- App in development with Java, for Android native, that can capture the sound obtained by the mic and transform into graphs capable to draw all the frequencies through Fast Fourier Transform.
+- App in development with **Java**, for **Android** **native**, that can capture the sound obtained by the mic and transform into graphs capable to draw all the frequencies through Fast Fourier Transform.
 
 > This app was idealized to be a help for deaf people, although not silent people.
 
